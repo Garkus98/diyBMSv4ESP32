@@ -2,6 +2,9 @@
 #ifndef DIYBMS_TFT_H_
 #define DIYBMS_TFT_H_
 
+#include "PacketRequestGenerator.h"
+#include "PacketReceiveProcessor.h"
+
 /*
 #define USER_SETUP_LOADED
 #define USE_DMA_TO_TFT
@@ -30,9 +33,9 @@ enum ScreenTemplateToDisplay : uint8_t
   VoltageFourBank = 4,
   State = 5,
   AVRProgrammer=6,
-  CurrentMonitor=7
+  CurrentMonitor=7,
+  SystemInformation=8
 };
-
 
 
 void tftwakeup_task(void *param);
@@ -42,7 +45,7 @@ void PrepareTFT_Error();
 void PrepareTFT_VoltageFourBank();
 void PrepareTFT_ControlState();
 void PrepareTFT_VoltageOneBank();
-void tftsleep_task(void *param);
+void tftsleep();
 void init_tft_display();
 ScreenTemplateToDisplay WhatScreenToDisplay();
 void SwitchTFTBacklight(bool value);
@@ -52,6 +55,10 @@ void DrawClock();
 void PrepareTFT_AVRProgrammer();
 void tftdisplay_avrprogrammer_progress(uint8_t programingMode,size_t current, size_t maximum);
 void tftdisplay_avrprogrammer_stop();
+void IncreaseDelayCounter();
+void PageForward();
+void PageBackward();
+void ResetScreenSequence();
 
 
 //I hate EXTERN....
@@ -59,10 +66,17 @@ extern Rules rules;
 extern diybms_eeprom_settings mysettings;
 extern HAL_ESP32 hal;
 extern ControllerState _controller_state;
-extern TaskHandle_t tftsleep_task_handle;
 extern TaskHandle_t updatetftdisplay_task_handle;
-extern QueueHandle_t queue_i2c;
-extern TaskHandle_t tftwakeup_task_handle;
 extern avrprogramsettings _avrsettings;
 extern currentmonitoring_struct currentMonitor;
+extern bool wifi_isconnected;
+extern char hostname[16];
+extern char ip_string[16];
+extern PacketRequestGenerator prg;
+extern PacketReceiveProcessor receiveProc;
+extern uint32_t canbus_messages_received;
+extern uint32_t canbus_messages_sent;
+extern uint32_t canbus_messages_failed_sent;
+
+
 #endif

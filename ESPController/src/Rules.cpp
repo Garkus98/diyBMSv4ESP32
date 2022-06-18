@@ -1,4 +1,27 @@
+#define USE_ESP_IDF_LOG 1
+static constexpr const char * const TAG = "diybms-rules";
+
 #include "Rules.h"
+
+
+// Its critical these are in the same order as "enum Rule", and occupy the same index position
+const char *RuleTextDescription[] = {
+    "EmergencyStop",
+    "BMSError",
+    "CurrentMonitorOverCurrentAmps",
+    "ModuleOverVoltage",
+    "ModuleUnderVoltage",
+    "ModuleOverTemperatureInternal",
+    "ModuleUnderTemperatureInternal",
+    "ModuleOverTemperatureExternal",
+    "ModuleUnderTemperatureExternal",
+    "CurrentMonitorOverVoltage",
+    "CurrentMonitorUnderVoltage",
+    "BankOverVoltage",
+    "BankUnderVoltage",
+    "Timer2",
+    "Timer1"};
+
 
 void Rules::ClearValues()
 {
@@ -98,6 +121,8 @@ void Rules::ProcessCell(uint8_t bank, uint8_t cellNumber, CellModuleInfo *c)
 
 uint16_t Rules::VoltageRangeInBank(uint8_t bank)
 {
+    if (invalidModuleCount>0) return 0;
+    
     return highestvoltageinpack[bank] - lowestvoltageinpack[bank];
 }
 

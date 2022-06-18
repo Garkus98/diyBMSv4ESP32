@@ -47,11 +47,33 @@ function switchPage(newPage) {
     $("#myNav").height("0%");
 }
 function identifyModule(button, cellid) {
-    $.getJSON("identifyModule.json", { c: cellid }, function (data) { }).fail(function () { $("#iperror").show(); });
+    $.getJSON("/api/identifyModule", { c: cellid }, function (data) { }).fail(function () { $("#iperror").show(); });
+}
+
+function restoreconfig(filename) {
+    let isConfirmed = confirm("Are you sure you wish to restore '"+filename+"' configuration file?");
+
+    if (isConfirmed) {
+
+        alert("Note: Passwords are not restored, you will need to manually change these in the integration page if required.");
+
+        $.ajax({
+            type: 'POST',
+            url: '/post/restoreconfig',
+            data: $.param({ filename: filename }),
+            success: function (data) {
+                location.reload();
+            },
+            error: function (data) {
+                showFailure();
+            },
+        });
+
+    }
 }
 
 function refreshCurrentMonitorValues() {
-    $.getJSON("currentmonitor.json",
+    $.getJSON("/api/currentmonitor",
         function (data) {
             $("#CurrentMonEnabled").prop("checked", data.enabled);
             $("#modbusAddress").val(data.address);
@@ -62,7 +84,7 @@ function refreshCurrentMonitorValues() {
             $("#cmvalid").val(data.valid);
             $("#cmtimestampage").val(data.timestampage);
 
-            if (data.devicetype==0) {
+            if (data.devicetype == 0) {
                 $("#cmbatterycapacity").val(data.batterycapacity);
                 $("#cmfullchargevolt").val(data.fullchargevolt.toFixed(2));
                 $("#cmtailcurrent").val(data.tailcurrent.toFixed(2));
@@ -115,15 +137,15 @@ function refreshCurrentMonitorValues() {
 
             if (data.enabled) {
                 $("#currentmonbasic").show();
-                if (data.devicetype==0) {
+                if (data.devicetype == 0) {
                     //DIYBMS Current Monitor
                     $("#currentmonadvanced").show();
-                    
+
                     $("#currentmonrelay").show();
                 } else {
                     //PZEM-017
                     $("#currentmonadvanced").hide();
-                    
+
                     $("#currentmonrelay").hide();
                 }
             } else {
@@ -132,7 +154,7 @@ function refreshCurrentMonitorValues() {
                 $("#currentmonrelay").hide();
             }
 
-        }).fail(function () { }
+        }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
         );
 
 }
@@ -169,7 +191,7 @@ function currentmonitorSubmitForm(form) {
 }
 
 function avrProgrammingStatsUpdate(attempts) {
-    $.getJSON("avrstatus.json",
+    $.getJSON("/api/avrstatus",
         function (data) {
             console.log(data);
 
@@ -218,7 +240,6 @@ function avrProgrammingStatsUpdate(attempts) {
         }).fail(function () {
             $("#iperror").show();
         });
-
 }
 
 function configureModule(button, cellid, attempts) {
@@ -228,7 +249,7 @@ function configureModule(button, cellid, attempts) {
     $(button).parent().parent().parent().find(".selected").removeClass("selected");
     $(button).parent().parent().addClass("selected");
 
-    $.getJSON("modules.json", { c: cellid },
+    $.getJSON("/api/modules", { c: cellid },
         function (data) {
             var div = $("#settingConfig .settings");
             $('#c').val(data.settings.id);
@@ -283,7 +304,7 @@ function secondsToHms(seconds) {
 }
 
 function queryBMS() {
-    $.getJSON("monitor2.json", function (jsondata) {
+    $.getJSON("/api/monitor2", function (jsondata) {
         var labels = [];
         var cells = [];
         var bank = [];
@@ -366,21 +387,27 @@ function queryBMS() {
         if (minVoltage < 2.5) { minVoltage = 0; }
 
         if (jsondata) {
-            //Ignore and hide any errors which are zero
-            if (jsondata.badcrc == 0) { $("#badcrc").hide(); } else { $("#badcrc .v").html(jsondata.badcrc); $("#badcrc").show(); }
-            if (jsondata.ignored == 0) { $("#ignored").hide(); } else { $("#ignored .v").html(jsondata.ignored); $("#ignored").show(); }
-            if (jsondata.sent == 0) { $("#sent").hide(); } else { $("#sent .v").html(jsondata.sent); $("#sent").show(); }
-            if (jsondata.received == 0) { $("#received").hide(); } else { $("#received .v").html(jsondata.received); $("#received").show(); }
-            if (jsondata.roundtrip == 0) { $("#roundtrip").hide(); } else { $("#roundtrip .v").html(jsondata.roundtrip); $("#roundtrip").show(); }
-            if (jsondata.oos == 0) { $("#oos").hide(); } else { $("#oos .v").html(jsondata.oos); $("#oos").show(); }
+            if (jsondata.badcrc != 0) { $("#badcrc").show(); }
+            if (jsondata.ignored != 0) { $("#ignored").show(); }
+            if (jsondata.sent != 0) { $("#sent").show(); }
+            if (jsondata.received != 0) { $("#received").show(); }
+            if (jsondata.roundtrip != 0) { $("#roundtrip").show(); }
+            if (jsondata.oos != 0) { $("#oos").show(); }
+            if (jsondata.can_fail != 0) { $("#canfail").show(); }
+            if (jsondata.can_sent != 0) { $("#cansent").show(); }
+            if (jsondata.can_rec != 0) { $("#canrecd").show(); }
+            if (jsondata.qlen != 0) { $("#qlen").show(); }
 
-            
-            if (jsondata.can_fail == 0) { $("#canfail").hide(); } else { $("#canfail .v").html(jsondata.can_fail); $("#canfail").show(); }
-
-            if (jsondata.can_sent == 0) { $("#cansent").hide(); } else { $("#cansent .v").html(jsondata.can_sent); $("#cansent").show(); }
-            if (jsondata.can_rec == 0) { $("#canrecd").hide(); } else { $("#canrecd .v").html(jsondata.can_rec); $("#canrecd").show(); }
-
-            if (jsondata.qlen == 0) { $("#qlen").hide(); } else { $("#qlen .v").html(jsondata.qlen); $("#qlen").show(); }
+            $("#badcrc .v").html(jsondata.badcrc);
+            $("#ignored .v").html(jsondata.ignored);
+            $("#sent .v").html(jsondata.sent);
+            $("#received .v").html(jsondata.received);
+            $("#roundtrip .v").html(jsondata.roundtrip);
+            $("#oos .v").html(jsondata.oos);
+            $("#canfail .v").html(jsondata.can_fail);
+            $("#cansent .v").html(jsondata.can_sent);
+            $("#canrecd .v").html(jsondata.can_rec);
+            $("#qlen .v").html(jsondata.qlen);
 
             $("#uptime .v").html(secondsToHms(jsondata.uptime)); $("#uptime").show();
 
@@ -434,7 +461,7 @@ function queryBMS() {
                 $("#shuntv .v").html(parseFloat(data.v).toFixed(2) + "V");
                 $("#shuntv").show();
 
-                if (data.soc!=0) {
+                if (data.soc != 0) {
                     $("#soc .v").html(parseFloat(data.soc).toFixed(2) + "%");
                     $("#soc").show();
                 } else {
@@ -444,16 +471,16 @@ function queryBMS() {
                 $("#power .v").html(parseFloat(data.p) + "W");
                 $("#power").show();
 
-                if (data.mahout!=0) {
-                $("#amphout .v").html((parseFloat(data.mahout) / 1000).toFixed(3));
-                $("#amphout").show();
+                if (data.mahout != 0) {
+                    $("#amphout .v").html((parseFloat(data.mahout) / 1000).toFixed(3));
+                    $("#amphout").show();
                 } else {
                     $("#amphout").hide();
                 }
 
-                if (data.mahin!=0) {
-                $("#amphin .v").html((parseFloat(data.mahin) / 1000).toFixed(3));
-                $("#amphin").show();
+                if (data.mahin != 0) {
+                    $("#amphin .v").html((parseFloat(data.mahin) / 1000).toFixed(3));
+                    $("#amphin").show();
                 } else {
                     $("#amphin").hide();
                 }
@@ -538,10 +565,10 @@ function queryBMS() {
                 $(columns[7]).html(pwm[index].value);
             });
 
-            //As the module page is open, we refresh the last 3 columns using seperate JSON web service to keep the monitor2.json
+            //As the module page is open, we refresh the last 3 columns using seperate JSON web service to keep the monitor2
             //packets as small as possible
 
-            $.getJSON("monitor3.json", function (jsondata) {
+            $.getJSON("/api/monitor3", function (jsondata) {
                 var tbody = $("#modulesRows");
                 var rows = $(tbody).find("tr");
                 $.each(cells, function (index, value) {
@@ -947,6 +974,7 @@ $(window).on('resize', function () {
 $(function () {
     $("#loading").show();
     $("#avrprogconfirm").hide();
+    $(".stat").hide();
 
     $("#more").on("click"
         , function (e) {
@@ -1022,14 +1050,14 @@ $(function () {
         $(this).addClass("active");
         switchPage("#aboutPage");
 
-        $.getJSON("settings.json",
+        $.getJSON("/api/settings",
             function (data) {
                 $("#MinFreeHeap").html(data.settings.MinFreeHeap);
                 $("#FreeHeap").html(data.settings.FreeHeap);
                 $("#HeapSize").html(data.settings.HeapSize);
                 $("#SdkVersion").html(data.settings.SdkVersion);
                 $("#HostName").html("<a href='http://" + data.settings.HostName + "'>" + data.settings.HostName + "</a>");
-            }).fail(function () { }
+            }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
             );
 
         return true;
@@ -1047,13 +1075,13 @@ $(function () {
 
         switchPage("#modulesPage");
 
-        $.getJSON("settings.json",
+        $.getJSON("/api/settings",
             function (data) {
                 $("#g1").val(data.settings.bypassovertemp);
                 $("#g2").val(data.settings.bypassthreshold);
 
                 $("#modulesPage").show();
-            }).fail(function () { }
+            }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
             );
         return true;
     });
@@ -1072,7 +1100,7 @@ $(function () {
 
         switchPage("#settingsPage");
 
-        $.getJSON("settings.json",
+        $.getJSON("/api/settings",
             function (data) {
 
                 $("#NTPServer").val(data.settings.NTPServerName);
@@ -1080,8 +1108,7 @@ $(function () {
                 $("#NTPZoneMin").val(data.settings.MinutesTimeZone);
                 $("#NTPDST").prop("checked", data.settings.DST);
 
-                var d = new Date(1000 * data.settings.now);
-                $("#timenow").html(d.toJSON());
+                $("#timenow").html(data.settings.datetime);
 
                 $("#totalSeriesModules").val(data.settings.totalseriesmodules);
                 $("#totalBanks").val(data.settings.totalnumberofbanks);
@@ -1093,9 +1120,15 @@ $(function () {
 
                 $("#baudrate").val(data.settings.baudrate);
 
+                $("#interpacketgap").empty();
+                for (let index = 2000; index < 10000; index += 500) {
+                    $("#interpacketgap").append('<option value="' + index + '">' + index + '</option>')
+                }
+
+                $("#interpacketgap").val(data.settings.interpacketgap);
 
                 $("#banksForm").show();
-            }).fail(function () { }
+            }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
             );
 
         return true;
@@ -1110,7 +1143,7 @@ $(function () {
 
         switchPage("#rulesPage");
 
-        $.getJSON("rules.json",
+        $.getJSON("/api/rules",
             function (data) {
                 //Rules have loaded
 
@@ -1168,7 +1201,7 @@ $(function () {
                 }
 
                 $("#rulesForm").show();
-            }).fail(function () { }
+            }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
             );
 
         return true;
@@ -1181,13 +1214,13 @@ $(function () {
         switchPage("#diybmsCurrentMonitorPage");
 
 
-        $.getJSON("rs485settings.json",
+        $.getJSON("/api/rs485settings",
             function (data) {
                 $("#rs485baudrate").val(data.baudrate);
                 $("#rs485databit").val(data.databits);
                 $("#rs485parity").val(data.parity);
                 $("#rs485stopbit").val(data.stopbits);
-            }).fail(function () { }
+            }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
             );
 
         refreshCurrentMonitorValues();
@@ -1199,7 +1232,7 @@ $(function () {
         $(".header-right a").removeClass("active");
         $(this).addClass("active");
 
-        $.getJSON("victron.json",
+        $.getJSON("/api/victron",
             function (data) {
                 $("#VictronEnabled").prop("checked", data.victron.enabled);
 
@@ -1210,7 +1243,7 @@ $(function () {
                 }
 
                 switchPage("#victroncanbusPage");
-            }).fail(function () { }
+            }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
             );
 
         return true;
@@ -1231,13 +1264,12 @@ $(function () {
         $("#mqttForm").hide();
         $("#influxForm").hide();
 
-        $.getJSON("integration.json",
+        $.getJSON("/api/integration",
             function (data) {
 
                 $("#mqttEnabled").prop("checked", data.mqtt.enabled);
                 $("#mqttTopic").val(data.mqtt.topic);
-                $("#mqttServer").val(data.mqtt.server);
-                $("#mqttPort").val(data.mqtt.port);
+                $("#mqttUri").val(data.mqtt.uri);
                 $("#mqttUsername").val(data.mqtt.username);
                 $("#mqttPassword").val("");
 
@@ -1246,21 +1278,23 @@ $(function () {
                 $("#influxDatabase").val(data.influxdb.bucket);
                 $("#influxToken").val(data.influxdb.apitoken);
                 $("#influxOrgId").val(data.influxdb.orgid);
+                $("#influxFreq").val(data.influxdb.frequency);
 
                 $("#mqttForm").show();
                 $("#influxForm").show();
-            }).fail(function () { }
+            }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
             );
 
         return true;
     });
 
 
+
     $("#mount").click(function () {
         $.ajax({
-            type: 'post',
-            url: 'sdmount.json',
-            data: 'mount=1',
+            type: 'POST',
+            url: '/post/sdmount',
+            data: $.param({ mount: 1 }),
             success: function (data) {
                 //Refresh the storage page
                 $("#storage").trigger("click");
@@ -1274,9 +1308,9 @@ $(function () {
 
     $("#savewifi").click(function () {
         $.ajax({
-            type: 'post',
-            url: 'wificonfigtofile.json',
-            data: 'save=1',
+            type: 'POST',
+            url: '/post/wificonfigtofile',
+            data: $.param({ save: 1 }),
             success: function (data) {
                 //Refresh the storage page
                 showSuccess();
@@ -1289,9 +1323,9 @@ $(function () {
 
     $("#saveconfig").click(function () {
         $.ajax({
-            type: 'post',
-            url: 'saveconfigtofile.json',
-            data: 'save=1',
+            type: 'POST',
+            url: '/post/saveconfigtofile',
+            data: $.param({ save: 1 }),
             success: function (data) {
                 //Refresh the storage page
                 showSuccess();
@@ -1306,9 +1340,9 @@ $(function () {
 
     $("#unmount").click(function () {
         $.ajax({
-            type: 'post',
-            url: 'sdunmount.json',
-            data: 'unmount=1',
+            type: 'POST',
+            url: '/post/sdunmount',
+            data: $.param({ unmount: 1 }),
             success: function (data) {
                 //Refresh the storage page
                 $("#storage").trigger("click");
@@ -1322,8 +1356,8 @@ $(function () {
 
     $("#AVRProgDisable").click(function () {
         $.ajax({
-            type: 'post',
-            url: 'disableavrprog.json',
+            type: 'POST',
+            url: '/post/disableavrprog',
             data: { 'enable': 0 },
             timeout: 10000
         })
@@ -1349,8 +1383,8 @@ $(function () {
 
     $("#AVRProgEnable").click(function () {
         $.ajax({
-            type: 'post',
-            url: 'enableavrprog.json',
+            type: 'POST',
+            url: '/post/enableavrprog',
             data: { 'enable': 1 },
             timeout: 10000
         })
@@ -1384,8 +1418,8 @@ $(function () {
         $("#avrinfo").empty();
 
         $.ajax({
-            type: 'post',
-            url: 'avrprog.json',
+            type: 'POST',
+            url: '/post/avrprog',
             data: { file: $("#selectedavrindex").val() },
             //Wait up to 30 seconds
             timeout: 30000
@@ -1414,13 +1448,13 @@ $(function () {
         $(this).addClass("active");
         switchPage("#avrprogPage");
 
-        $.getJSON("avrstorage.json",
+        $.getJSON("/api/avrstorage",
             function (data) {
                 $("#avrprog").empty();
                 $("#avrprogconfirm").hide();
                 $("#selectedavrindex").val("");
 
-                if (data.ProgModeEnabled == 1) {
+                if (data.ProgModeEnabled == true) {
                     //Programming mode enabled
                     $("#AVRProgEnable").prop('disabled', true).css({ opacity: 0.25 });
                     $("#AVRProgDisable").prop('disabled', false).css({ opacity: 1.0 });
@@ -1453,7 +1487,7 @@ $(function () {
                         $(li).append(aref);
                     });
                 }
-            }).fail(function () { }
+            }).fail(function () { $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' }); }
             );
 
         return true;
@@ -1466,7 +1500,7 @@ $(function () {
         $(this).addClass("active");
         switchPage("#storagePage");
 
-        $.getJSON("storage.json",
+        $.getJSON("/api/storage",
             function (data) {
 
                 //Allow warning to trigger again
@@ -1491,7 +1525,11 @@ $(function () {
                 if (data.storage.sdcard.files) {
                     $.each(data.storage.sdcard.files, function (index, value) {
                         if (value != null) {
-                            $("#sdcardfiles").append("<li><a href='download?type=sdcard&file=" + encodeURI(value) + "'>" + value + "</a></li>");
+                            link="<a href='download?type=sdcard&file=" + encodeURI(value) + "'>" + value + "</a>";
+                            if (value.startsWith("backup_config_")) {
+                                link+="<button class='small' onclick='restoreconfig(\"" + encodeURI(value) + "\")'>Restore</button>";                            
+                            }
+                            $("#sdcardfiles").append("<li>"+link+"</li>");
                         }
                     });
                 }
@@ -1513,7 +1551,9 @@ $(function () {
                     });
                 }
 
-            }).fail(function () { }
+            }).fail(function () {
+                $.notify("Request failed", { autoHide: true, globalPosition: 'top right', className: 'error' });
+            }
             );
 
         return true;
@@ -1643,19 +1683,23 @@ $(function () {
         }
     });
 
-    $.ajaxSetup({
-        beforeSend: function (xhr, settings) { settings.data += '&xss=' + XSS_KEY; }
-    });
+    $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
+        if (originalOptions.type.toUpperCase() !== 'POST' || options.type.toUpperCase() !== 'POST') {
+            return;
+        }
 
+        if (options.data.length > 0) {
+            options.data += '&';
+        }
+
+        options.data += $.param({ xss: XSS_KEY });
+    });
 
     $(".stat").mouseenter(function () {
         $(this).addClass("hover");
     }).mouseleave(function () {
         $(this).removeClass("hover");
     });
-
-    //$(document).ajaxStart(function(){ });
-    //$(document).ajaxStop(function(){ });
 
     $("#homePage").show();
 
